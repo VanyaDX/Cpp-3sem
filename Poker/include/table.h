@@ -5,8 +5,7 @@
 
 class OpenCard;
 
-class Table {
-public:
+struct Table {
     uint32_t enemyCount, bank, littleBlind, playerCash, playerBet;
     OpenCard *hand;
     std::vector <OpenCard> board;
@@ -14,6 +13,7 @@ public:
     std::vector <uint32_t> cash, bets;
     Table();
     ~Table();
+    // prints all info into stdout
     void print() const;
 };
 

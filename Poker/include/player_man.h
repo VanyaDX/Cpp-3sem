@@ -3,14 +3,17 @@
 
 #include "player.h"
 #include "cards.h"
+#include "textui.h"
 
-class player_man: public Player {
+class PlayerMan: public Player {
 private:
+    TextUI* UI;
 public:
-    player_man() {}
-    player_man(std::string name): Player(name) { }
-    ~player_man() {}
-    // Player make's bet
+    PlayerMan() {};
+    PlayerMan(std::string name, TextUI *ui): Player(name) { UI = ui; }
+    ~PlayerMan() {};
+    // print state & ask user for action
+    // throws std::invalid_argument, std::out_of_range in case of incorrect input
     uint32_t bet(uint32_t sum, Table state);
 };
 

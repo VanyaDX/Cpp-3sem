@@ -21,19 +21,19 @@ public:
     int getRank()const;
     // Get Suit
     Suit getSuit()const;
-    
+    // create open card (to table)
     OpenCard();
-
     OpenCard(const Suit, const int);
-
+    // required for std::count
     bool operator==(OpenCard const&);
-    // Card to String
+    // returns string description of a card
     std::string toString() const;
 };
 
 class CloseCard: Card {
 public:
     friend class holdem_poker;
+    // create close card (to deck)
     CloseCard();
     CloseCard(const Suit, const int);
 };

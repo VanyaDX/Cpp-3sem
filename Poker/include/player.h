@@ -12,13 +12,13 @@ class Player {
 private:
     std::string name;
 public:
-    Player() {}
+    Player() {};
     Player(std::string n) { name = n; }
     // Get Player's name
     std::string getName() const { return name; }
-    virtual ~Player() {}
+    virtual ~Player() {};
     // Get player's bet or zero
-    virtual uint32_t bet(uint32_t minBet, Table state) = 0;
+    virtual uint32_t bet(uint32_t sum, Table state) = 0;
 };
 
 #endif

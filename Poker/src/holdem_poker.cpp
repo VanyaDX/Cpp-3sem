@@ -16,6 +16,17 @@
 using namespace std;
 
 namespace {
+    // returns upper or equal value from inGame
+    // or first value if x is max
+    unsigned myUpperBound(std::vector<unsigned> inGame, unsigned x) {
+        if (std::count(inGame.begin(), inGame.end(), x))
+            return x;
+
+        auto result = std::upper_bound(inGame.begin(), inGame.end(), x);
+        if (result == inGame.end())
+            return inGame[0];
+        return *result;
+    }
 
     bool comparatorByRank(const OpenCard &a, const OpenCard &b) {
         return a.getRank() > b.getRank();
@@ -26,9 +37,9 @@ namespace {
     }
 }
 
-holdem_poker::holdem_poker() {
-}
+holdem_poker::holdem_poker() {}
 
+// Get id,relevance and kickers of combination
 uint32_t *holdem_poker::enter(OpenCard *cards) {
     uint32_t *res = new uint32_t[7];
     for (int i = 0; i < 7; i++) {
@@ -167,6 +178,7 @@ uint32_t *holdem_poker::enter(OpenCard *cards) {
 
 holdem_poker::~holdem_poker() {
     delete[] players;
+    delete UI;
 }
 
 holdem_poker::PlayerData::~PlayerData() {
@@ -197,7 +209,7 @@ namespace {
     }
 }
 
-
+// Get the highest combination
 std::pair<OpenCard *, uint32_t *> holdem_poker::strongestCombination(OpenCard *source) {
     size_t cardIndex[5], n = 7, k = 5;
     for (size_t i = 0; i < k; i++) {
@@ -231,18 +243,20 @@ std::vector<uint32_t> holdem_poker::refresh() {
     return res;
 }
 
+// New round with i's player
 void holdem_poker::doRound() {
-    std::cout << "Game started\n";
+    UI->print("New round\n");
     table.clear();
     uint32_t small = std::count(live.begin(), live.end(), (dealer + 1) % playersCount) ? (dealer + 1) % playersCount : std::upper_bound(live.begin(), live.end(), (dealer + 1) % playersCount) == live.end() ? live[0] : *std::upper_bound(live.begin(), live.end(), (dealer + 1) % playersCount);
     uint32_t big = std::count(live.begin(), live.end(), (small + 1) % playersCount) ? (small + 1) % playersCount : std::upper_bound(live.begin(), live.end(), (small + 1) % playersCount) == live.end() ? live[0] : *std::upper_bound(live.begin(), live.end(), (small + 1) % playersCount);
     players[small].cash -= std::min(littleBlind, players[small].cash);
     players[small].currBet = std::min(littleBlind, players[small].cash);
-    std::cout << players[small].p->getName() << " did little blind: adds " << std::min(littleBlind, players[small].cash) << std::endl;
+    UI->smallBlind(players[small].p, std::min(littleBlind, players[big].cash));
     players[big].cash -= std::min(littleBlind * 2, players[big].cash);
     players[big].currBet = std::min(littleBlind * 2, players[big].cash);
-    std::cout << players[big].p->getName() << " did big blind: adds " << std::min(littleBlind * 2, players[big].cash) << std::endl;
+    UI->bigBlind(players[big].p, std::min(littleBlind * 2, players[big].cash));
     bank = std::min(littleBlind, players[small].cash) + std::min(littleBlind * 2, players[big].cash);
+    
     uint32_t plg = big = std::count(live.begin(), live.end(), (big + 1) % playersCount) ? (big + 1) % playersCount : std::upper_bound(live.begin(), live.end(), (big + 1) % playersCount) == live.end() ? live[0] : *std::upper_bound(live.begin(), live.end(), (big + 1) % playersCount);
     doBets(plg);
     for (int i = 0; i < 3; i++)
@@ -262,18 +276,10 @@ void holdem_poker::doRound() {
         players[winners[i]].cash += bank / winners.size();
         winnersPointers.push_back(players[winners[i]].p);
     }
-    if (winnersPointers.size() == 1) {
-        std::cout << "Winner:";
-    }
-    else {
-        std::cout << "Winners:";
-    }
-    for (auto it = winnersPointers.begin(); it != winnersPointers.end(); it++) {
-        std::cout << " " << (*it)->getName();
-    }
-    std::cout << "\n";
+    UI->win(winnersPointers);
 }
 
+// Player's betting process
 void holdem_poker::doBets(uint32_t pls) {
     uint32_t last = pls, curr = last, value, currBet = 0;
     for (uint32_t i = 0; i < live.size(); i++) {
@@ -282,8 +288,7 @@ void holdem_poker::doBets(uint32_t pls) {
 
     do {
         if (players[curr].cash != 0) {
-            std::cout << "<<" << (*players[curr].p).getName() << ">>\n";
-            getTable(curr, live).print();
+            UI->printState(*players[curr].p, getTable(curr, live));
             for (int i = 0; i < 3; i++) {
                 bool wrongInput = false;
                 try {
@@ -298,26 +303,26 @@ void holdem_poker::doBets(uint32_t pls) {
                     break;
                 if (i == 2) {
                     value = 0;
-                    std::cout << "You're only allowed check or fold\n";
+                    UI->print("wrong value, check/fold by default\n");
                     break;
                 }
                 else
-                    std::cout << "Input another sum ("  << 2 - i << ")\n";
+                    UI->print("wrong value, try again (" + std::to_string(2 - i) + ")\n");
             }
             if (value > 0) {
                 if (value + players[curr].currBet > currBet) {
                     last = curr;
                     currBet = value + players[curr].currBet;
                     if (value == players[curr].cash)
-                        std::cout << players[curr].p->getName() << " goes all-in: " << currBet << std::endl;
+                        UI->allIn(players[curr].p, currBet);
                     else
-                        std::cout << players[curr].p->getName() << " raises total bet to " << currBet << ": adds " << value << std::endl;
+                        UI->raise(players[curr].p, currBet, value);
                 }
                 else {
                     if (value == players[curr].cash)
-                        std::cout << players[curr].p->getName() << " goes all-in: " << players[curr].currBet + value << std::endl;
+                        UI->allIn(players[curr].p, players[curr].currBet + value);
                     else
-                        std::cout << players[curr].p->getName() << " calls total bet to " << currBet << ": adds " << value << std::endl;
+                        UI->call(players[curr].p, currBet, value);
                 }
                 players[curr].cash -= value;
                 players[curr].currBet += value;
@@ -325,10 +330,10 @@ void holdem_poker::doBets(uint32_t pls) {
             }
             else {
                 if (currBet - players[curr].currBet == 0) {
-                    std::cout << players[curr].p->getName() << " checks" << std::endl;
+                    UI->check(players[curr].p);
                 }
                 else {
-                    std::cout << players[curr].p->getName() << " folds" << std::endl;
+                    UI->fold(players[curr].p);
                     assert(std::find(live.begin(), live.end(), curr) != live.end());
                     live.erase(std::find(live.begin(), live.end(), curr));
                     if (live.size() == 1)
@@ -340,78 +345,7 @@ void holdem_poker::doBets(uint32_t pls) {
     } while (curr != last);
 }
 
-std::string holdem_poker::rankToString(uint32_t in) {
-    switch (in) {
-        case 14:
-            return "A";
-        case 13:
-            return "K";
-        case 12:
-            return "Q";
-        case 11:
-            return "J";
-        default:
-        {
-            std::stringstream ss;
-            std::string s;
-            ss << in;
-            s = ss.str();
-            return s;
-        }
-    }
-}
-
-
-void holdem_poker::show(Player *p, OpenCard *cards, uint32_t *value) {
-    std::cout << p->getName() << " has ";
-    switch (value[0]) {
-        case 8:
-            if (value[1] == 14) {
-                std::cout << "royal flush";
-            }
-            else {
-                std::cout << "straight flush with " << rankToString(value[1]) << " highest";
-            }
-            break;
-        case 7:
-            std::cout << "four of a kind of " << rankToString(value[1]) << " and " << rankToString(value[2]) << " kicker";
-            break;
-        case 6:
-            std::cout << "full house with " << rankToString(value[1] / 14) << " and " << rankToString(value[1] % 14) << " highest";
-            break;
-        case 5:
-            std::cout << "flush with " << rankToString(value[1]) << " highest";
-            break;
-        case 4:
-            std::cout << "straight with " << rankToString(value[1]) << " highest";
-            break;
-        case 3:
-            std::cout << "triple of " << rankToString(value[1]) << " and " <<
-                    rankToString(value[2]) << ", " << rankToString(value[3]) << "kickers";
-            break;
-        case 2:
-            std::cout << "two pairs: " << rankToString(value[1] / 14) << " and " << rankToString(value[1] % 14) << "; " <<
-                    rankToString(value[2]) << " kicker";
-            break;
-        case 1:
-            std::cout << "pair of " << rankToString(value[1]) << " with " << rankToString(value[2]) << ", " << rankToString(value[3]) <<
-                    ", " << rankToString(value[4]) << " kickers";
-            break;
-        case 0:
-            std::cout << rankToString(value[1]) << " highest card with " << rankToString(value[2]) << ", " << rankToString(value[3]) << ", " <<
-                    rankToString(value[4]) << ", " << rankToString(value[5]) << " kickers";
-            break;
-        default:
-            break;
-    }
-
-    std::cout << " (combination:";
-    for (int i = 0; i < 5; i++)
-        std::cout << " " << cards[i].toString();
-    std::cout << ")\n";
-}
-
-
+// Get vector with winnerses ids
 std::vector<uint32_t> holdem_poker::show() {
     std::vector<uint32_t> winners;
     uint32_t *maxValue = new uint32_t[7];
@@ -439,7 +373,7 @@ std::vector<uint32_t> holdem_poker::show() {
         }
 
         if (live.size() > 1)
-            show(players[live[i]].p, curr.first, curr.second);
+            UI->showdown(players[live[i]].p, curr.first, curr.second);
         delete[] curr.first;
         delete[] curr.second;
     }
@@ -448,8 +382,10 @@ std::vector<uint32_t> holdem_poker::show() {
     return winners;
 }
 
+// Giving new cards to players & deck
 void holdem_poker::shuffle() {
-    std::cout << "Shuffling cards.. \n\n";
+    UI->print("reshuffling cards...\n\n");
+
     const int N = 52;
     std::pair<Suit, int> deckTmp[N];
     for (int i = 2; i <= 14; i++) {
@@ -470,12 +406,14 @@ void holdem_poker::shuffle() {
     }
 }
 
+// Remove card from deck and add to table
 void holdem_poker::openNext() {
     CloseCard chosen = deck.back();
     deck.erase(--deck.end());
     table.push_back(OpenCard(chosen.suit, chosen.rank));
 }
 
+// Get state for players[player].p
 Table holdem_poker::getTable(uint32_t player, std::vector<uint32_t> live) {
     int isActive = std::count(live.begin(), live.end(), player);
 
@@ -499,6 +437,7 @@ Table holdem_poker::getTable(uint32_t player, std::vector<uint32_t> live) {
     return bs;
 }
 
+// Get players who are able to bet
 size_t holdem_poker::inGameWithCash() {
     size_t cnt = 0;
     for (uint32_t i = 0; i < live.size(); i++) {
@@ -507,12 +446,14 @@ size_t holdem_poker::inGameWithCash() {
     return cnt;
 }
 
+// running until there is no winner
 void holdem_poker::run() {
     live = refresh();
     dealer = 0;
     bank = 0;
 
     while (live.size() > 1) {
+	dealer = myUpperBound(live, (dealer + 1) % playersCount);
         shuffle();
         doRound();
         bank = 0;
@@ -525,8 +466,5 @@ void holdem_poker::run() {
         pl.push_back(players[i].p);
         c.push_back(players[i].cash);
     }
-    std::cout << "\nGame over\n";
-    for (uint32_t i = 0; i < pl.size(); i++) {
-        std::cout << pl[i]->getName() << " has " << c[i] << std::endl;
-    }
+    UI->gameOver(pl, c);
 }
