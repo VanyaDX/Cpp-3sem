@@ -1,6 +1,7 @@
 #include "include/cards.h"
 #include <sstream>
 
+//create open card (to table)
 OpenCard::OpenCard() {
     suit = Suit::clubs;
     rank = 0;
@@ -11,16 +12,17 @@ OpenCard::OpenCard(Suit const x, int const y) {
     rank = y;
 }
 
+//return Rank of open card
 int OpenCard::getRank()const {
     return rank;
 }
 
-
+//return Suit of open card
 Suit OpenCard::getSuit()const {
     return suit;
 }
 
-
+//create close card
 CloseCard::CloseCard() {}
 
 CloseCard::CloseCard(Suit const x, int const y) {
@@ -28,10 +30,12 @@ CloseCard::CloseCard(Suit const x, int const y) {
     rank = y;
 }
 
+// required for std::count
 bool OpenCard::operator==(OpenCard const &another) {
     return rank == another.getRank() && suit == another.getSuit();
 }
 
+// returns string description of a card
 std::string OpenCard::toString() const {
     std::string rankStr;
     switch (rank) {

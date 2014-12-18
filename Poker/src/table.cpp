@@ -11,6 +11,7 @@ Table::~Table() {
         delete[] hand;
 }
 
+// prints all info into stdout
 void Table::print() const {
     std::cout << "Money on table: " << bank << "\n";
     std::cout << "Your money: " << playerCash << "; Your total bet: " << playerBet << "\n";
@@ -18,7 +19,7 @@ void Table::print() const {
         std::cout << names[i] << "'s money: " << cash[i] << "; "<<names[i] <<" total bet: " << bets[i] << "\n";
     }
     if (board.size() != 0) {
-        std::cout << "On board cards: ";
+        std::cout << "On table cards: ";
         for (uint32_t i = 0; i < board.size(); i++) {
             std::cout << board[i].toString() << " ";
         }
