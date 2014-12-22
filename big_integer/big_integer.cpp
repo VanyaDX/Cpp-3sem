@@ -21,7 +21,7 @@ big_integer::big_integer(big_integer const& other)
     erase_zero();
 }
 
-// moove constructor
+// move constructor
 big_integer::big_integer(big_integer&& other) {
     negative = other.negative;
     digits = std::move(other.digits);

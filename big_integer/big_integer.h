@@ -35,7 +35,7 @@ public:
     big_integer();
     // copy constructor
     big_integer(big_integer const& other);
-    // moove constructor
+    // move constructor
     big_integer(big_integer&& other);
     // default int constructor
     big_integer(int b);
